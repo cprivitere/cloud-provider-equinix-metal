@@ -18,7 +18,7 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
 	"k8s.io/klog/v2"
 
-	"github.com/equinix/cloud-provider-equinix-metal/metal"
+	"github.com/kubernetes-sigs/cloud-provider-equinix-metal/metal"
 	"github.com/spf13/pflag"
 )
 
