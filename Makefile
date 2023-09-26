@@ -159,7 +159,7 @@ $(GOBIN):
 	mkdir -p $(GOBIN)
 
 image-all: $(foreach arch, $(ARCHES), sub-image-linux-$(arch)) ## make the images for all supported ARCH
-sub-image-%:
+sub-image-linux-%:
 	@$(MAKE) ARCH=$* image
 
 image: ## make the image for a single ARCH
