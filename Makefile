@@ -1,3 +1,17 @@
+# Copyright 2023 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 SHELL=/bin/sh
 BINARY ?= cloud-provider-equinix-metal
 BUILD_IMAGE?=equinix/cloud-provider-equinix-metal
@@ -22,13 +36,14 @@ LDFLAGS_ARGS ?= -X 'k8s.io/component-base/version.gitVersion=$(VERSION)' -X 'k8s
 LDFLAGS ?= -ldflags "$(LDFLAGS_ARGS) -extldflags '-static'"
 
 # which arches can we support
-ARCHES=arm64 amd64
+ARCHES=amd64 arm64
+OSES=linux darwin
 
 # BUILDARCH is the host architecture
 # ARCH is the target architecture
 # we need to keep track of them separately
-BUILDARCH ?= $(shell uname -m)
-BUILDOS ?= $(shell uname -s | tr A-Z a-z)
+BUILDARCH ?= $(shell go env GOARCH)
+BUILDOS ?= $(shell go env GOOS)
 
 # canonicalized names for host architecture
 ifeq ($(BUILDARCH),aarch64)
@@ -125,9 +140,9 @@ deploy:
 
 .PHONY: build build-all image deploy ci
 
-build-all: $(addprefix sub-build-, $(ARCHES)) ## Build the binaries for all supported ARCH
+build-all: $(foreach os,$(OSES),$(foreach arch,$(ARCHES),sub-build-$(os)-$(arch))) ## Build the binaries for all supported ARCH
 sub-build-%:
-	@$(MAKE) ARCH=$* build
+	@$(MAKE) OS=$(word 1,$(subst -, ,$*)) ARCH=$(word 2,$(subst -, ,$*)) build
 
 build: $(DIST_BINARY) ## Build the binary for a single ARCH
 $(DIST_BINARY): $(DIST_DIR)
@@ -143,12 +158,12 @@ endif
 $(GOBIN):
 	mkdir -p $(GOBIN)
 
-image-all: $(addprefix sub-image-, $(ARCHES)) ## make the images for all supported ARCH
+image-all: $(foreach arch, $(ARCHES), sub-image-linux-$(arch)) ## make the images for all supported ARCH
 sub-image-%:
 	@$(MAKE) ARCH=$* image
 
 image: ## make the image for a single ARCH
-	docker buildx build --load --build-arg LDFLAGS="$(LDFLAGS_ARGS)" -t $(TAGGED_ARCH_IMAGE) -f Dockerfile --platform $(OS)/$(ARCH) .
+	docker buildx build --load --build-arg LDFLAGS="$(LDFLAGS_ARGS)" -t $(TAGGED_ARCH_IMAGE) -f Dockerfile --platform linux/$(ARCH) .
 	echo "Done. image is at $(TAGGED_ARCH_IMAGE)"
 
 push-all: $(addprefix push-arch-, $(ARCHES)) ## Push all built images.
