@@ -11,6 +11,7 @@ import (
 type LB struct{}
 
 func NewLB(k8sclient kubernetes.Interface, config string) *LB {
+
 	return &LB{}
 }
 
