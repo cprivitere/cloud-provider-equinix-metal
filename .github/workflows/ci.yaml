@@ -4,8 +4,8 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches:
-    - '*'
-    - '!dependabot/**'
+      - "*"
+      - "!dependabot/**"
 
 env:
   IMAGE_NAME: cloud-provider-equinix-metal
@@ -24,125 +24,125 @@ jobs:
     name: Report
     runs-on: ubuntu-latest
     steps:
-    - name: ref
-      run: echo ${{ github.ref }}
-    - name: event_name
-      run: echo ${{ github.event_name }}
+      - name: ref
+        run: echo ${{ github.ref }}
+      - name: event_name
+        run: echo ${{ github.event_name }}
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
-      uses: actions/checkout@v3
-    - uses: actions/setup-go@v4
-      with:
-        go-version: 1.19
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3.6.0
-      with:
-        version: v1.51
+      - name: checkout
+        uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.19
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3.6.0
+        with:
+          version: v1.51
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
-      uses: actions/checkout@v3
+      - name: checkout
+        uses: actions/checkout@v3
 
-    - uses: actions/setup-go@v4
-      with:
-        go-version: 1.19
-    - id: go-cache-paths
-      shell: bash
-      run: |
-        echo "go-build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
-        echo "go-mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
-    - name: Go Mod Cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go-cache-paths.outputs.go-mod }}
-        key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-mod-
-    - name: Go Build Cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go-cache-paths.outputs.go-build }}
-        key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-build-
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: ./go.mod
+      - id: go-cache-paths
+        shell: bash
+        run: |
+          echo "go-build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "go-mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+      - name: Go Mod Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+      - name: Go Build Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
 
-    - name: test
-      run: make race
+      - name: test
+        run: make race
 
   image:
     name: Build Image
     runs-on: ubuntu-latest
     steps:
-    - name: checkout
-      uses: actions/checkout@v3
-    - name: Set up QEMU for cross-building
-      uses: docker/setup-qemu-action@v2
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: Set up QEMU for cross-building
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Generate metadata
-      id: meta
-      uses: ./.github/actions/metadata
-      with:
-        docker_username: ${{ secrets.DOCKER_USERNAME }}
-        quay_username: ${{ secrets.QUAY_USERNAME }}
-        metadata_flavor: ${{ env.metadata_flavor }}
-        metadata_tags: ${{ env.metadata_tags }}
+      - name: Generate metadata
+        id: meta
+        uses: ./.github/actions/metadata
+        with:
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          quay_username: ${{ secrets.QUAY_USERNAME }}
+          metadata_flavor: ${{ env.metadata_flavor }}
+          metadata_tags: ${{ env.metadata_tags }}
 
-    - name: Determine if workflow should push image
-      id: should-push
-      run: |
-        SHOULD_PUSH=true
-        # Skip pushing if initiated by dependabot
-        [[ "$GITHUB_ACTOR" == "dependabot[bot]" ]] && SHOULD_PUSH=false
-        # Skip pushing if a PR
-        [[ "$GITHUB_EVENT_NAME" == "pull_request" ]] && SHOULD_PUSH=false
-        # Skip pushing if a pull request and branch is not main
-        [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" != "main" ]] && SHOULD_PUSH=false
-        echo "should-push=${SHOULD_PUSH}" >> $GITHUB_OUTPUT
+      - name: Determine if workflow should push image
+        id: should-push
+        run: |
+          SHOULD_PUSH=true
+          # Skip pushing if initiated by dependabot
+          [[ "$GITHUB_ACTOR" == "dependabot[bot]" ]] && SHOULD_PUSH=false
+          # Skip pushing if a PR
+          [[ "$GITHUB_EVENT_NAME" == "pull_request" ]] && SHOULD_PUSH=false
+          # Skip pushing if a pull request and branch is not main
+          [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" != "main" ]] && SHOULD_PUSH=false
+          echo "should-push=${SHOULD_PUSH}" >> $GITHUB_OUTPUT
 
-    - name: Log in to ghcr.io
-      uses: docker/login-action@v2
-      if: ${{ steps.should-push.outputs.should-push == 'true' }}
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v2
+        if: ${{ steps.should-push.outputs.should-push == 'true' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Log into DockerHub
-      uses: docker/login-action@v2
-      env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      if: ${{ env.DOCKER_USERNAME != '' && steps.should-push.outputs.should-push == 'true' }}
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log into DockerHub
+        uses: docker/login-action@v2
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        if: ${{ env.DOCKER_USERNAME != '' && steps.should-push.outputs.should-push == 'true' }}
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Log into quay.io
-      uses: docker/login-action@v2
-      env:
-        QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      if: ${{ env.QUAY_USERNAME != '' && steps.should-push.outputs.should-push == 'true' }}
-      with:
-        registry: quay.io
-        username: ${{ secrets.QUAY_USERNAME }}
-        password: ${{ secrets.QUAY_PASSWORD }}
+      - name: Log into quay.io
+        uses: docker/login-action@v2
+        env:
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+        if: ${{ env.QUAY_USERNAME != '' && steps.should-push.outputs.should-push == 'true' }}
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
 
-    - name: Build
-      id: docker_build
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: ${{ steps.should-push.outputs.should-push == 'true' }}
-        build-args: |
-          BINARY=cloud-provider-equinix-metal
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        platforms: linux/amd64,linux/arm64
-        cache-from: type=gha, scope=${{ github.workflow }}
-        cache-to: type=gha, mode=max, scope=${{ github.workflow }}
+      - name: Build
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: ${{ steps.should-push.outputs.should-push == 'true' }}
+          build-args: |
+            BINARY=cloud-provider-equinix-metal
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha, scope=${{ github.workflow }}
+          cache-to: type=gha, mode=max, scope=${{ github.workflow }}
