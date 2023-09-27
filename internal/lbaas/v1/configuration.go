@@ -93,7 +93,7 @@ func NewConfiguration() *Configuration {
 		Debug:         false,
 		Servers: ServerConfigurations{
 			{
-				URL:         "https://lb.metalctrl.io/v1",
+				URL:         "https://lb.metalctrl.io",
 				Description: "Production Server",
 			},
 		},
